@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Button from '../../atoms/Button/Button';
 import Input from '../../atoms/Input/Input';
 import { useAuth } from '../../../hooks/useAuth';
+import { approveInstructor } from '../../../api/auth';
 
 const LoginForm: React.FC = () => {
   const { login } = useAuth();
@@ -25,10 +26,35 @@ const LoginForm: React.FC = () => {
     setLoading(true);
     try {
       const user = await login({ email, password });
-      if (user.role === 'STUDENT') navigate('/student/dashboard');
-      else if (user.role === 'INSTRUCTOR') navigate('/instructor/dashboard');
-      else if (user.role === 'ADMIN') navigate('/admin/dashboard');
-      else navigate('/');
+      if (user.role === 'STUDENT') {
+        navigate('/student/dashboard');
+      } else if (user.role === 'INSTRUCTOR') {
+        navigate('/instructor/dashboard');
+      } else if (user.role === 'ADMIN') {
+        const pendingToken = localStorage.getItem('pending_instructor_approval_token');
+        if (pendingToken) {
+          try {
+            await approveInstructor(pendingToken);
+            localStorage.removeItem('pending_instructor_approval_token');
+            navigate('/admin/dashboard', {
+              state: { successMessage: 'Instructor has been approved successfully.' },
+              replace: true
+            });
+            return;
+          } catch (err: any) {
+            localStorage.removeItem('pending_instructor_approval_token');
+            const msg = err.response?.data?.message ?? 'Failed to approve instructor. The token may be expired or invalid.';
+            navigate('/admin/dashboard', {
+              state: { errorMessage: msg },
+              replace: true
+            });
+            return;
+          }
+        }
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/');
+      }
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setError(message ?? 'Invalid email or password. Please try again.');

@@ -1,14 +1,29 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getAdminDashboard } from '../../api/dashboard';
 import { AdminDashboardData } from '../../types/dashboard';
 import Spinner from '../../components/atoms/Spinner/Spinner';
 import Badge from '../../components/atoms/Badge/Badge';
-import { Users, GraduationCap, School, Mail, BookOpen, UserCheck } from 'lucide-react';
+import { Users, GraduationCap, School, Mail, BookOpen, UserCheck, CheckCircle2, AlertCircle, X } from 'lucide-react';
 
 const AdminDashboardPage: React.FC = () => {
+  const location = useLocation();
   const [data, setData] = useState<AdminDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successPopup, setSuccessPopup] = useState<string | null>(null);
+  const [errorPopup, setErrorPopup] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (location.state?.successMessage) {
+      setSuccessPopup(location.state.successMessage);
+      window.history.replaceState({}, document.title);
+    }
+    if (location.state?.errorMessage) {
+      setErrorPopup(location.state.errorMessage);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     getAdminDashboard()
@@ -39,6 +54,31 @@ const AdminDashboardPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 relative z-10">
+      {/* Popups */}
+      {successPopup && (
+        <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <p className="text-sm font-semibold">{successPopup}</p>
+          </div>
+          <button onClick={() => setSuccessPopup(null)} className="text-emerald-500 hover:text-emerald-700 p-1 hover:bg-emerald-100 rounded-lg transition-colors cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {errorPopup && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+            <p className="text-sm font-semibold">{errorPopup}</p>
+          </div>
+          <button onClick={() => setErrorPopup(null)} className="text-red-500 hover:text-red-700 p-1 hover:bg-red-100 rounded-lg transition-colors cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Premium Background Blobs */}
       <div className="absolute top-10 left-1/2 -translate-x-1/2 w-full h-[600px] overflow-hidden pointer-events-none -z-10">
         <div className="absolute top-0 right-10 w-96 h-96 bg-indigo-100 rounded-full mix-blend-multiply filter blur-3xl opacity-60"></div>

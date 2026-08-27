@@ -25,6 +25,7 @@ import ManageLessonsPage from '../pages/instructor/ManageLessonsPage';
 // Admin pages
 import TopicsPage from '../pages/admin/TopicsPage';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
+import ApproveInstructorPage from '../pages/admin/ApproveInstructorPage';
 
 interface AppRoutesProps {
   user: User | null;
@@ -51,11 +52,45 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ user }) => {
       <Route path="/" element={<HomePage user={user} />} />
       <Route
         path="/login"
-        element={user ? <Navigate to="/" replace /> : <LoginPage />}
+        element={
+          user ? (
+            <Navigate
+              to={
+                user.role === 'STUDENT'
+                  ? '/student/dashboard'
+                  : user.role === 'INSTRUCTOR'
+                  ? '/instructor/dashboard'
+                  : user.role === 'ADMIN'
+                  ? '/admin/dashboard'
+                  : '/'
+              }
+              replace
+            />
+          ) : (
+            <LoginPage />
+          )
+        }
       />
       <Route
         path="/register"
-        element={user ? <Navigate to="/" replace /> : <RegisterPage />}
+        element={
+          user ? (
+            <Navigate
+              to={
+                user.role === 'STUDENT'
+                  ? '/student/dashboard'
+                  : user.role === 'INSTRUCTOR'
+                  ? '/instructor/dashboard'
+                  : user.role === 'ADMIN'
+                  ? '/admin/dashboard'
+                  : '/'
+              }
+              replace
+            />
+          ) : (
+            <RegisterPage />
+          )
+        }
       />
 
       {/* Authenticated - any role */}
@@ -130,6 +165,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ user }) => {
           <AdminDashboardPage />
         </ProtectedRoute>
       } />
+      <Route path="/admin/approve-instructor" element={<ApproveInstructorPage />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

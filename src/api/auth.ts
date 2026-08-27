@@ -25,3 +25,13 @@ export const updateUserProfile = async (payload: { name: string; bio: string | n
   const { data } = await api.patch<ApiResponse<User>>('/users/me', payload);
   return data.data;
 };
+
+export const registerInstructor = async (payload: RegisterPayload): Promise<{ success: boolean; data: { success: boolean; message: string } }> => {
+  const { data } = await api.post<{ success: boolean; data: { success: boolean; message: string } }>('/auth/instructor/register', payload);
+  return data;
+};
+
+export const approveInstructor = async (token: string): Promise<ApiResponse<User>> => {
+  const { data } = await api.post<ApiResponse<User>>('/admin/instructors/approve', { token });
+  return data;
+};
