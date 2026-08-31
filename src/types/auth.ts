@@ -5,6 +5,7 @@ export interface User {
   name: string;
   email: string;
   role: Role;
+  approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
   bio?: string | null;
 }
 

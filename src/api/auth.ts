@@ -35,3 +35,18 @@ export const approveInstructor = async (token: string): Promise<ApiResponse<User
   const { data } = await api.post<ApiResponse<User>>('/admin/instructors/approve', { token });
   return data;
 };
+
+export const getPendingInstructors = async (): Promise<User[]> => {
+  const { data } = await api.get<ApiResponse<User[]>>('/admin/instructors/pending');
+  return data.data;
+};
+
+export const approveInstructorById = async (id: string): Promise<ApiResponse<User>> => {
+  const { data } = await api.patch<ApiResponse<User>>(`/admin/instructors/${id}/approve`);
+  return data;
+};
+
+export const rejectInstructorById = async (id: string): Promise<ApiResponse<User>> => {
+  const { data } = await api.patch<ApiResponse<User>>(`/admin/instructors/${id}/reject`);
+  return data;
+};

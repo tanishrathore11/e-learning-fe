@@ -1,18 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { getAdminDashboard } from '../../api/dashboard';
+import { getPendingInstructors, approveInstructorById, rejectInstructorById } from '../../api/auth';
 import { AdminDashboardData } from '../../types/dashboard';
+import { User } from '../../types/auth';
 import Spinner from '../../components/atoms/Spinner/Spinner';
 import Badge from '../../components/atoms/Badge/Badge';
-import { Users, GraduationCap, School, Mail, BookOpen, UserCheck, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import Button from '../../components/atoms/Button/Button';
+import { Users, GraduationCap, School, Mail, BookOpen, UserCheck, CheckCircle2, AlertCircle, X, Clock, Check, XCircle } from 'lucide-react';
 
 const AdminDashboardPage: React.FC = () => {
   const location = useLocation();
   const [data, setData] = useState<AdminDashboardData | null>(null);
+  const [pendingInstructors, setPendingInstructors] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [successPopup, setSuccessPopup] = useState<string | null>(null);
   const [errorPopup, setErrorPopup] = useState<string | null>(null);
+
+  const fetchAllData = async () => {
+    try {
+      const [dashData, pendingList] = await Promise.all([
+        getAdminDashboard(),
+        getPendingInstructors().catch(() => []),
+      ]);
+      setData(dashData);
+      setPendingInstructors(pendingList);
+    } catch {
+      setError('Failed to load admin dashboard data.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (location.state?.successMessage) {
@@ -26,11 +46,34 @@ const AdminDashboardPage: React.FC = () => {
   }, [location.state]);
 
   useEffect(() => {
-    getAdminDashboard()
-      .then(setData)
-      .catch(() => setError('Failed to load admin dashboard data.'))
-      .finally(() => setLoading(false));
+    fetchAllData();
   }, []);
+
+  const handleApprove = async (id: string, name: string) => {
+    setActionLoadingId(id);
+    try {
+      await approveInstructorById(id);
+      setSuccessPopup(`Instructor ${name} approved successfully.`);
+      await fetchAllData();
+    } catch (err: any) {
+      setErrorPopup(err.response?.data?.message || 'Failed to approve instructor.');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleReject = async (id: string, name: string) => {
+    setActionLoadingId(id);
+    try {
+      await rejectInstructorById(id);
+      setSuccessPopup(`Instructor request for ${name} rejected.`);
+      await fetchAllData();
+    } catch (err: any) {
+      setErrorPopup(err.response?.data?.message || 'Failed to reject instructor.');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -94,7 +137,7 @@ const AdminDashboardPage: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Total Students Card */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center gap-5 hover:shadow-md transition-shadow">
           <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 shrink-0">
@@ -112,14 +155,89 @@ const AdminDashboardPage: React.FC = () => {
             <School className="w-8 h-8" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Total Registered Instructors</p>
+            <p className="text-sm font-medium text-gray-500">Approved Instructors</p>
             <h3 className="text-3xl font-extrabold text-gray-900 mt-0.5">{instructors.length}</h3>
+          </div>
+        </div>
+
+        {/* Pending Requests Card */}
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center gap-5 hover:shadow-md transition-shadow">
+          <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 shrink-0">
+            <Clock className="w-8 h-8" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Pending Requests</p>
+            <h3 className="text-3xl font-extrabold text-amber-600 mt-0.5">{pendingInstructors.length}</h3>
           </div>
         </div>
       </div>
 
       {/* Tables Section */}
       <div className="space-y-12">
+        {/* Pending Instructor Requests */}
+        {pendingInstructors.length > 0 && (
+          <div className="bg-amber-50/40 border border-amber-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-6 py-5 border-b border-amber-200/60 bg-amber-100/40 flex items-center justify-between">
+              <h2 className="font-extrabold text-amber-900 text-lg flex items-center gap-2">
+                <Clock className="w-5 h-5 text-amber-600" /> Pending Instructor Approvals ({pendingInstructors.length})
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-amber-200/50 bg-amber-100/20">
+                    <th className="px-6 py-4 text-xs font-bold text-amber-800 uppercase tracking-wider">Instructor</th>
+                    <th className="px-6 py-4 text-xs font-bold text-amber-800 uppercase tracking-wider">Contact</th>
+                    <th className="px-6 py-4 text-xs font-bold text-amber-800 uppercase tracking-wider">Biography</th>
+                    <th className="px-6 py-4 text-xs font-bold text-amber-800 uppercase tracking-wider text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-amber-200/40 bg-white">
+                  {pendingInstructors.map((inst) => (
+                    <tr key={inst.id} className="hover:bg-amber-50/20 transition-colors">
+                      <td className="px-6 py-4.5 whitespace-nowrap">
+                        <div className="font-bold text-gray-900 text-sm">{inst.name}</div>
+                      </td>
+                      <td className="px-6 py-4.5 whitespace-nowrap text-sm text-gray-600">
+                        <span className="flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          {inst.email}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4.5 text-sm text-gray-600 max-w-sm">
+                        <p className="line-clamp-2" title={inst.bio ?? ''}>
+                          {inst.bio ? inst.bio : <span className="text-gray-400 italic">No biography provided.</span>}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4.5 whitespace-nowrap text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            disabled={actionLoadingId === inst.id}
+                            onClick={() => handleApprove(inst.id, inst.name)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1"
+                          >
+                            <Check className="w-4 h-4" /> Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={actionLoadingId === inst.id}
+                            onClick={() => handleReject(inst.id, inst.name)}
+                            className="text-red-600 hover:bg-red-50 border-red-200 flex items-center gap-1"
+                          >
+                            <XCircle className="w-4 h-4" /> Reject
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* Instructors Directory */}
         <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
           <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/70 flex items-center justify-between">
