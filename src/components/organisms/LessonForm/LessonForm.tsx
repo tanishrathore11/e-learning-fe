@@ -28,7 +28,7 @@ const LessonForm: React.FC<LessonFormProps> = ({
   const [position, setPosition] = useState(initialValues?.position?.toString() ?? '');
   const [formError, setFormError] = useState('');
 
-  const isEdit = !!initialValues;
+  const isEdit = !!initialValues?.id;
 
   const insertMarkdown = (syntax: string, placeholder = '') => {
     const textarea = document.getElementById('lf-content') as HTMLTextAreaElement;
